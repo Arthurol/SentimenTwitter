@@ -17,7 +17,7 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 
 import twitter4j.TwitterException;
-import twitterapi.TweetManager;
+import twitterapi.TwitterAPI;
 
 public class GUIFrame extends JFrame implements ActionListener{
 
@@ -125,10 +125,10 @@ public class GUIFrame extends JFrame implements ActionListener{
 		int contagemPositivos = 0;
 		int contagemNegativos = 0;
 	
-		TweetManager tweetManager = new TweetManager();
+		TwitterAPI tweetManager = new TwitterAPI();
 		String topic = textField.getText();
 		topic = topic+"&lang:en";
-		ArrayList<String> tweets = tweetManager.getTweets(topic);
+		ArrayList<String> tweets = tweetManager.getTweetsAndAuthors(topic);
 		
 		for (int i = 0; i < tweets.size(); i++)
 		{
