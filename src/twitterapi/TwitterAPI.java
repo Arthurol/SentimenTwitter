@@ -89,15 +89,15 @@ public class TwitterAPI {
 				{	
 					//O tweet é adicionado à lista somente se sua data de criação estiver no intervalo estipulado
 					Calendar dataTweet = dateToCalendar(tweet.getCreatedAt()); 
-					//if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
-					//{
+					if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
+					{
 						String lingua = tweet.getLang();
 						if (lingua.equalsIgnoreCase("en"))
 						{
 							tweetList.add(String.valueOf(numeroTweet) + ") "+ tweet.getText());
 							numeroTweet ++;
 						}
-					//}
+					}
 					
 				}
 			} while ((query = result.nextQuery()) != null);
@@ -155,16 +155,16 @@ public class TwitterAPI {
 				for (Status tweet : tweets) 
 				{	
 					//O tweet é adicionado à lista somente se sua data de criação estiver no intervalo estipulado
-					//Calendar dataTweet = dateToCalendar(tweet.getCreatedAt()); 
-					//if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
-					//{
-					String lingua = tweet.getLang();
-					if (lingua.equalsIgnoreCase("en"))
+					Calendar dataTweet = dateToCalendar(tweet.getCreatedAt()); 
+					if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
 					{
-						tweetList.add(String.valueOf(numeroTweet) + ") "+ tweet.getText());
-						numeroTweet ++;
+						String lingua = tweet.getLang();
+						if (lingua.equalsIgnoreCase("en"))
+						{
+							tweetList.add(String.valueOf(numeroTweet) + ") "+ tweet.getText());
+							numeroTweet ++;
+						}
 					}
-					//}
 					
 				}
 			} while ((query = result.nextQuery()) != null);
