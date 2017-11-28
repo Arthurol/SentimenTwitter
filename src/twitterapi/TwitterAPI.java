@@ -4,12 +4,17 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import com.twitter.Extractor;
 
 import twitter4j.Query;
 import twitter4j.QueryResult;
@@ -18,6 +23,7 @@ import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
 import twitter4j.*;
+
 
 public class TwitterAPI {
 
@@ -30,10 +36,10 @@ public class TwitterAPI {
 	
 	public Query prepararQuery(String busca) 
 	{
-		ArrayList<String> tweetList = new ArrayList<String>();
-		QueryResult result = null;
 		Query query = new Query(busca);
-		query.setCount(500);		// máximo de tweets recuperados (por página)
+		
+		query.setCount(400);		// máximo de tweets recuperados (por página)
+		
 		return query;
 	}
 	
@@ -45,8 +51,10 @@ public class TwitterAPI {
 		{
 			Query query = new Query(topic);
 			
-			query.setCount(500);				// máximo de tweets recuperados
+			query.setCount(200);  // máximo de tweets recuperados
 			query.setLang("en");
+			query.setSinceId(1);
+			query.maxId(500);
 			
 			QueryResult result;
 			
@@ -78,28 +86,50 @@ public class TwitterAPI {
 		try 
 		{
 			Query query = prepararQuery(busca);
+			query.setUntil("2017-11-11");
+			query.setSince("2017-11-01");
 			QueryResult result;
 			int numeroTweet = 1;
-				
+			long maxId = 0;
+			
 			do {
 				result = twitter.search(query);
 				List<Status> tweets = result.getTweets();
 				
 				for (Status tweet : tweets) 
 				{	
+					
 					//O tweet é adicionado à lista somente se sua data de criação estiver no intervalo estipulado
 					Calendar dataTweet = dateToCalendar(tweet.getCreatedAt()); 
-					if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
-					{
+					//if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
+					//{
 						String lingua = tweet.getLang();
 						if (lingua.equalsIgnoreCase("en"))
 						{
-							tweetList.add(String.valueOf(numeroTweet) + ") "+ tweet.getText());
+							String data = dataTweet.getTime().toString();
+							String texto = "";
+							
+							if (tweet.getRetweetedStatus() != null)
+							{
+								int tamanhoRetweetedStatus = tweet.getRetweetedStatus().getText().length();
+								int tamanhoTweet = tweet.getText().length();
+								texto = tamanhoRetweetedStatus >=  tamanhoTweet ? 
+										tweet.getRetweetedStatus().getText() : tweet.getText();
+							}
+							
+							else
+								texto = tweet.getText();
+							
+							tweetList.add(preprocessarTweet(texto));
 							numeroTweet ++;
+		
 						}
-					}
+					//}
 					
 				}
+				maxId = result.getMaxId();
+				query.setSinceId(maxId);
+				
 			} while ((query = result.nextQuery()) != null);
 
 	        file = new File("treinamento\\datasetPositivo.txt");
@@ -110,16 +140,20 @@ public class TwitterAPI {
 	            file.createNewFile();
 	        }
 
-	        FileWriter fw = new FileWriter(file.getAbsoluteFile());
-	        BufferedWriter bw = new BufferedWriter(fw);
+	        //FileWriter fw = new FileWriter(file.getAbsoluteFile());
+	        //BufferedWriter bw = new BufferedWriter(fw);
+	        
+	        PrintWriter out = new PrintWriter(file.getAbsoluteFile());
 	        
 	        for (String tweetText : tweetList)
 	        {
-	        	bw.write(tweetText);
-	        	bw.newLine();
+	        	out.println(tweetText);
+	        	//bw.write(tweetText);
+	        	//bw.newLine();
 	        }
 	        
-	        bw.close();
+	        out.close();
+	       // bw.close();
 
 	        System.out.println("Tweets adicionados ao arquivo txt com sucesso.");
 
@@ -146,6 +180,8 @@ public class TwitterAPI {
 		{
 			Query query = prepararQuery(busca);
 			QueryResult result;
+			query.setUntil("2017-11-30");
+			query.setSince("2017-11-17");
 			int numeroTweet = 1;
 				
 			do {
@@ -156,16 +192,30 @@ public class TwitterAPI {
 				{	
 					//O tweet é adicionado à lista somente se sua data de criação estiver no intervalo estipulado
 					Calendar dataTweet = dateToCalendar(tweet.getCreatedAt()); 
-					if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
-					{
+					//if (dataTweet.compareTo(dataInicio) >= 0 && dataTweet.compareTo(dataFim) <= 0)
+					//{
 						String lingua = tweet.getLang();
 						if (lingua.equalsIgnoreCase("en"))
 						{
-							tweetList.add(String.valueOf(numeroTweet) + ") "+ tweet.getText());
+							String data = dataTweet.getTime().toString();
+							String texto = "";
+							
+							if (tweet.getRetweetedStatus() != null)
+							{
+								int tamanhoRetweetedStatus = tweet.getRetweetedStatus().getText().length();
+								int tamanhoTweet = tweet.getText().length();
+								texto = tamanhoRetweetedStatus >=  tamanhoTweet ? tweet.getRetweetedStatus().getText() 
+									: tweet.getText();
+							}
+							
+							else
+								texto = tweet.getText();
+							
+							tweetList.add(preprocessarTweet(texto));
 							numeroTweet ++;
+		
 						}
-					}
-					
+					//}
 				}
 			} while ((query = result.nextQuery()) != null);
 
@@ -237,5 +287,46 @@ public class TwitterAPI {
 		
 		return cal;
 	}
+	private String preprocessarTweet(String entrada)
+	{
+		String tweet = removerHashtagEUsername(entrada);
+		tweet = removerUrl(tweet);
+		tweet = removerPontuacao(tweet);
+		return tweet;
+	}
 	
+	public String removerUrl(String entrada)
+    {
+        String urlPattern = "((https?|ftp|gopher|telnet|file|Unsure|http):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)";
+        Pattern p = Pattern.compile(urlPattern,Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(entrada);
+        int i = 0;
+        while (m.find()) {
+        	entrada = entrada.replaceAll(urlPattern,"").trim();
+            i++;
+        }
+        return entrada;
+    }
+	
+	public String removerHashtagEUsername(String entrada)
+    {
+        String patternHashtag = "(?!\\s)[#|@]([A-Za-z]|\\d[A-Za-z]|\\d*[A-Za-z])\\w*\\b";
+        Pattern p = Pattern.compile(patternHashtag,Pattern.CASE_INSENSITIVE);
+        Matcher m = p.matcher(entrada);
+        int i = 0;
+        while (m.find()) {
+        	entrada = entrada.replaceAll(patternHashtag,"").trim();
+            i++;
+        }
+        return entrada;
+    }
+	
+	public String removerPontuacao(String entrada){
+		entrada = entrada.replaceAll("[!?:.,;()+]", " "); 
+		entrada = entrada.replaceAll("[\\s*]", " ");
+		entrada = entrada.replaceAll("RT", "");
+		entrada = entrada.toLowerCase();
+		entrada = entrada.trim();
+		return entrada;
+	}
 }

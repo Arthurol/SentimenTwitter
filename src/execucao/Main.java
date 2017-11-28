@@ -1,13 +1,16 @@
-package analisesentimentos;
+package execucao;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
 import javax.swing.JFrame;
+
+import com.twitter.Extractor;
 
 import twitterapi.TwitterAPI;
 import view.GUIFrame;
@@ -21,6 +24,18 @@ public class Main {
 		int opcao = 0;
 		String dataInicio;
 		String dataFim;
+	
+        Extractor extractor = new Extractor();
+        String strTeste = "@Gessica @Arthur Fora Dilma,fora Lula! #Impeachment #ForaDilma! https://t.co/f6A1ON4DKG https://t.co/M76NAIEz8a";
+        
+        String tweetsSemUserHash = twitterAPI.removerHashtagEUsername(strTeste);
+        String tweetsSemUrl = twitterAPI.removerUrl(tweetsSemUserHash);
+        String tweetsSemPontuacao = twitterAPI.removerPontuacao(tweetsSemUrl);
+        
+		System.out.println("Sem hashtag e usuarios \nAntes: " + strTeste + "\n" + "Depois: " + tweetsSemUserHash);
+		System.out.println("\nSem urls \nAntes: " + tweetsSemUserHash + "\n" + "Depois: " + tweetsSemUrl);		
+		System.out.println("\nSem pontuacao \nAntes: " + tweetsSemUrl + "\n" + "Depois: " + tweetsSemPontuacao + "\n\n");
+	
 		
 		while (opcao == 0)
 		{
@@ -30,7 +45,6 @@ public class Main {
 					+ "1 - Montar dataset positivo a partir de query \n"
 					+ "2 - Montar dataset negativo a partir de query \n"
 					+ "3 - Busca utilizando a API do Twitter \n"
-					+ "4 - Análise de sentimento de um tweet usando OpenNLP \n"
 					+ "5 - Sair \n");
 			
 			opcao = reader.hasNextInt() ? Integer.parseInt(reader.next()) : 0;
@@ -43,35 +57,38 @@ public class Main {
 
 				System.out.println("Entre com a query positiva: \n");
 				String queryPositiva = reader.nextLine(); 
-				System.out.println("Entre com a data de inicio (formato dd/mm/aaaa): \n");
-				dataInicio = reader.nextLine(); 
-				System.out.println("Entre com a data de fim (formato dd/mm/aaaa): \n");
-				dataFim = reader.nextLine();
+				//System.out.println("Entre com a data de inicio (formato dd/mm/aaaa): \n");
+				//dataInicio = reader.nextLine(); 
+				dataInicio = "01/01/2017";
+				//System.out.println("Entre com a data de fim (formato dd/mm/aaaa): \n");
+				//dataFim = reader.nextLine();
+				dataFim = "28/11/2017";
 				
 				String nomeDatasetPositivo = twitterAPI.montarDatasetPositivo(queryPositiva, 
 						twitterAPI.stringToCalendar(dataInicio), twitterAPI.stringToCalendar(dataFim));
 				
 				System.out.println(nomeDatasetPositivo.isEmpty() ? "Falha na criação do dataset positivo." : "Arquivo de nome " + nomeDatasetPositivo + 
 						" criado com sucesso!" );
-				
-				main(new String [1]);
+				break;
 						
 			case 2:
 				
 				System.out.println("Entre com a query negativa: \n");
 				String queryNegativa = reader.nextLine(); 
-				System.out.println("Entre com a data de inicio (formato dd/mm/aaaa): \n");
-				dataInicio = reader.nextLine(); 
-				System.out.println("Entre com a data de fim (formato dd/mm/aaaa): \n");
-				dataFim = reader.nextLine();
+				//System.out.println("Entre com a data de inicio (formato dd/mm/aaaa): \n");
+				//dataInicio = reader.nextLine(); 
+				dataInicio = "17/11/2017";
+				dataFim = "29/11/2017";
+				//System.out.println("Entre com a data de fim (formato dd/mm/aaaa): \n");
+				//dataFim = reader.nextLine();
+				
 				
 				String nomeDatasetNegativo = twitterAPI.montarDatasetNegativo(queryNegativa, 
 						twitterAPI.stringToCalendar(dataInicio), twitterAPI.stringToCalendar(dataFim));
 				
 				System.out.println(nomeDatasetNegativo.isEmpty() ? "Arquivo de nome " + nomeDatasetNegativo + 
 						" criado com sucesso!" : "Falha na criação do dataset negativo.");
-				
-				main(new String [1]);
+				break;
 		
 			case 3:
 				GUIFrame gui = new GUIFrame(); // create EventsFrame
@@ -80,23 +97,13 @@ public class Main {
 				gui.setVisible( true ); // display frame
 				break;
 				
-			case 4:
-				System.out.println("Simule um tweet:");
-				Scanner leitorTweet = new Scanner(System.in);
-				String tweet = leitorTweet.nextLine();
-				
-				OpenNLPCategorizer twitterCategorizer = new OpenNLPCategorizer();
-				twitterCategorizer.trainModel();
-				twitterCategorizer.classifyNewTweet(tweet);
-				leitorTweet.close();
-				
-				break;
 				
 			case 5:
 				reader.close();
 				break;
 		}		
 	
+		
 		String teste = "A internet deu voz à muitas aberrações. O anonimato é a ilusão de impunidade suficiente para que muitos mostrem seus demônios em público.";
 		ArrayList <String>testeTokenizado = new ArrayList<String>();
 		StringTokenizer textToken = new StringTokenizer(teste);
@@ -105,20 +112,15 @@ public class Main {
 		while(textToken.hasMoreTokens()){
 			String tempWord = textToken.nextToken();
 			if(!tempWord.equals(null)){
-				tempWord = stripWord(tempWord);
+				tempWord = twitterAPI.removerPontuacao(tempWord);
 				testeTokenizado.add(tempWord); //if not white space than add to ArrayList
 			}
 		}
 		
-		System.out.println(testeTokenizado);
+		//System.out.println(testeTokenizado);
 		
 	}
 	
-	public static String stripWord(String word){
-		word = word.toLowerCase();
-		word = word.replaceAll("([a-z]+)[?:!.,;]*", "$1"); //Remove punctuation
-		return word;
-	}
 	
 	
 	
